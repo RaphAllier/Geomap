@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+  <style>
+    body { margin:0;position:fixed;top:0;right:0;bottom:0;left:0; }
+  </style>
+</head>
+
+<body>
+  <script>
+		var width = 700,
+  		  height = 580;
+
+
+
+		var svg = d3.select( "body" )
+  		.append( "svg" )
+		  .attr( "width", width )
+		  .attr( "height", height );
+
+    var projection = d3.geoConicConformal() // d3.geo.albersUsa avec d3 version 3
+    			.center([2.454071, 46.279229])
+          .scale(2800)
+          .translate([width/2, height/2]);
+
+    var path = d3.geoPath() // d3.geo.path avec d3 version 3
+                 .projection(projection);
+    
+
+    d3.csv("GrippeFrance2014.csv",function(data){
+
+    var props =Object.getOwnPropertyNames(data[0])
+    var M_number = 12;
+
+    function SumMonth (M_number,d) {
+        var s = 0;
+        for (var i=0;i<props.length;i++){
+          var month = parseInt(props[i].substr(3,2));
+          if (month == M_number){
+            s += parseInt(d[props[i]]);
+          }
+        };
+        return s;
+    };
+
+    function MaxMinMonth(M_number,data) {
+      var min = 100000;
+      var max =0;
+      for (var i=0;i<data.length;i++){
+        var current = SumMonth(M_number,data[i])
+        if (current>max){
+          max = current;
+        }
+        if (current < min) {
+          min = current;
+        }
+      }
+      return [min,max]
+    }
+
+
+
+      d3.json("regions.json", function(json) {
+      
+      for (var i =0; i<data.length;i++){
+        var dataValue = SumMonth(M_number,data[i])
+        //var dataValue = parseFloat(data[i].somme2014);
+        for (var j=0;j<json.features.length;j++){
+          if (json.features[j].properties.nom == data[i].region){json.features[j].properties.grippe = dataValue}
+        }
+      };
+
+
+
+
+      var color =d3.scaleLinear()
+      //.domain([d3.min(data, function(d){return parseInt(d.somme2014)}),d3.max(data, function(d){return parseInt(d.somme2014)})])
+      .domain(MaxMinMonth(M_number,data))
+      .range([d3.rgb(0,0,0),d3.rgb(0,255,0)]);
+
+      svg.selectAll("path")
+           .data(json.features)
+           .enter()
+           .append("path")
+           .attr("d", path)
+           .attr("fill",function(d){
+              return color(d.properties.grippe)
+           });
+    });
+
+
+
+    })
+  </script>
+</body>
